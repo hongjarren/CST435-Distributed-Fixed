@@ -1,0 +1,42 @@
+services:
+  servicea:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    environment:
+      - SERVICE_NAME=A
+      - PORT=50051
+    ports:
+      - "50061:50051"
+  
+  serviceb:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    environment:
+      - SERVICE_NAME=B
+      - PORT=50051
+    ports:
+      - "50062:50051"
+  
+  servicec:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    environment:
+      - SERVICE_NAME=C
+      - PORT=50051
+    ports:
+      - "50063:50051"
+
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    depends_on:
+      - servicea
+      - serviceb
+      - servicec
+    command: ["--targets", "servicea:50051,serviceb:50051,servicec:50051", "--requests", "300", "--concurrency", "10", "--work_ms", "10", "--out", "/tmp/results.csv"]
+    volumes:
+      - ./results:/tmp

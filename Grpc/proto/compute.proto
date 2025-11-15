@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package demo;
+
+service Compute {
+  // Service A: Compute - performs computation on input
+  rpc Compute(ComputeRequest) returns (ComputeResponse) {}
+  
+  // Service B: Transform - transforms the computed result
+  rpc Transform(TransformRequest) returns (TransformResponse) {}
+  
+  // Service C: Aggregate - aggregates results and returns final answer
+  rpc Aggregate(AggregateRequest) returns (AggregateResponse) {}
+}
+
+message ComputeRequest {
+  int32 value = 1;  // input number
+  int32 work_ms = 2;  // simulate work time in ms
+}
+
+message ComputeResponse {
+  int32 result = 1;  // computed result (e.g., value * 2)
+  string service_name = 2;  // which service processed this
+  int64 timestamp_ms = 3;
+}
+
+message TransformRequest {
+  int32 computed_value = 1;  // result from Compute
+  int32 work_ms = 2;
+}
+
+message TransformResponse {
+  int32 result = 1;  // transformed result (e.g., computed_value + 10)
+  string service_name = 2;
+  int64 timestamp_ms = 3;
+}
+
+message AggregateRequest {
+  int32 transformed_value = 1;  // result from Transform
+  int32 work_ms = 2;
+}
+
+message AggregateResponse {
+  int32 final_result = 1;  // final result (e.g., transformed_value * 3)
+  string pipeline = 2;  // "A->B->C"
+  int64 timestamp_ms = 3;
+}
