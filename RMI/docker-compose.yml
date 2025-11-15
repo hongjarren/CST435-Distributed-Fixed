@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  servicea:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    environment:
+      SERVICE_NAME: A
+      PORT: 1099
+    ports:
+      - "1099:1099"
+    container_name: rmi-servicea
+
+  serviceb:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    environment:
+      SERVICE_NAME: B
+      PORT: 1099
+    ports:
+      - "1100:1099"
+    container_name: rmi-serviceb
+
+  servicec:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    environment:
+      SERVICE_NAME: C
+      PORT: 1099
+    ports:
+      - "1101:1099"
+    container_name: rmi-servicec
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    depends_on:
+      - servicea
+      - serviceb
+      - servicec
+    volumes:
+      - ./results:/app/results
+    command:
+      - "--targets"
+      - "servicea,serviceb,servicec"
+      - "--requests"
+      - "300"
+      - "--concurrency"
+      - "10"
+      - "--work_ms"
+      - "10"
+      - "--input"
+      - "5"
+      - "--out"
+      - "/app/results/results.csv"
+    container_name: rmi-client

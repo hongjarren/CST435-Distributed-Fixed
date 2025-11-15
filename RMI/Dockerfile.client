@@ -1,0 +1,21 @@
+# RMI Client Dockerfile
+FROM eclipse-temurin:11-jdk AS builder
+
+WORKDIR /build
+
+# Copy source and pom
+COPY pom.xml .
+COPY src ./src
+
+# Install Maven and compile
+RUN apt-get update && apt-get install -y maven && \
+    mvn clean package -DskipTests
+
+# Runtime stage
+FROM eclipse-temurin:11-jdk
+WORKDIR /app
+
+# Copy compiled JAR
+COPY --from=builder /build/target/rmi-distributed-1.0-jar-with-dependencies.jar rmi-distributed.jar
+
+ENTRYPOINT ["java", "-cp", "rmi-distributed.jar", "com.cst435.LoadTestClient"]
