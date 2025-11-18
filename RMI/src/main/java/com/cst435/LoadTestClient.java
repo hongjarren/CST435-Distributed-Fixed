@@ -11,7 +11,7 @@ import java.util.concurrent.*;
 
 /**
  * RMI Load Test Client.
- * Sends requests through the 3-stage pipeline (Service A -> B -> C).
+ * Sends requests through the 5-stage pipeline (Service A -> B -> C -> D -> E).
  * Outputs results to a CSV file.
  */
 public class LoadTestClient {
@@ -19,20 +19,26 @@ public class LoadTestClient {
         int input;
         Integer computed;
         Integer transformed;
+        Integer aggregated;
+        Integer refined;
         Integer finalResult;
         String serviceA;
         String serviceB;
         String serviceC;
+        String serviceD;
+        String serviceE;
         long sendTs;
         long recvTs;
         long rttMs;
         String error;
 
-        TestResult(int input, String serviceA, String serviceB, String serviceC) {
+        TestResult(int input, String serviceA, String serviceB, String serviceC, String serviceD, String serviceE) {
             this.input = input;
             this.serviceA = serviceA;
             this.serviceB = serviceB;
             this.serviceC = serviceC;
+            this.serviceD = serviceD;
+            this.serviceE = serviceE;
             this.sendTs = System.currentTimeMillis();
             this.error = "";
         }
@@ -41,10 +47,14 @@ public class LoadTestClient {
             writer.write(input + "," +
                     (computed != null ? computed : "") + "," +
                     (transformed != null ? transformed : "") + "," +
+                    (aggregated != null ? aggregated : "") + "," +
+                    (refined != null ? refined : "") + "," +
                     (finalResult != null ? finalResult : "") + "," +
                     serviceA + "," +
                     serviceB + "," +
                     serviceC + "," +
+                    serviceD + "," +
+                    serviceE + "," +
                     sendTs + "," +
                     recvTs + "," +
                     (rttMs > 0 ? rttMs : "") + "," +
@@ -53,15 +63,17 @@ public class LoadTestClient {
     }
 
     static class PipelineWorker implements Callable<List<TestResult>> {
-        String hostA, hostB, hostC;
+        String hostA, hostB, hostC, hostD, hostE;
         int numRequests;
         int inputValue;
         int workMs;
 
-        PipelineWorker(String hostA, String hostB, String hostC, int numRequests, int inputValue, int workMs) {
+        PipelineWorker(String hostA, String hostB, String hostC, String hostD, String hostE, int numRequests, int inputValue, int workMs) {
             this.hostA = hostA;
             this.hostB = hostB;
             this.hostC = hostC;
+            this.hostD = hostD;
+            this.hostE = hostE;
             this.numRequests = numRequests;
             this.inputValue = inputValue;
             this.workMs = workMs;
@@ -78,7 +90,7 @@ public class LoadTestClient {
         }
 
         private TestResult runPipeline() {
-            TestResult result = new TestResult(inputValue, hostA, hostB, hostC);
+            TestResult result = new TestResult(inputValue, hostA, hostB, hostC, hostD, hostE);
             try {
                 // Look up services in RMI registry
                 Registry regA = LocateRegistry.getRegistry(hostA, 1099);
@@ -89,11 +101,19 @@ public class LoadTestClient {
 
                 Registry regC = LocateRegistry.getRegistry(hostC, 1099);
                 ComputeService serviceC = (ComputeService) regC.lookup("ComputeService_C");
+                
+                Registry regD = LocateRegistry.getRegistry(hostD, 1099);
+                ComputeService serviceD = (ComputeService) regD.lookup("ComputeService_D");
+                
+                Registry regE = LocateRegistry.getRegistry(hostE, 1099);
+                ComputeService serviceE = (ComputeService) regE.lookup("ComputeService_E");
 
                 // Execute pipeline
                 result.computed = serviceA.compute(inputValue, workMs);
                 result.transformed = serviceB.transform(result.computed, workMs);
-                result.finalResult = serviceC.aggregate(result.transformed, workMs);
+                result.aggregated = serviceC.aggregate(result.transformed, workMs);
+                result.refined = serviceD.refine(result.aggregated, workMs);
+                result.finalResult = serviceE.finalize(result.refined, workMs);
 
                 result.recvTs = System.currentTimeMillis();
                 result.rttMs = result.recvTs - result.sendTs;
@@ -111,6 +131,8 @@ public class LoadTestClient {
         String hostA = "localhost";
         String hostB = "localhost";
         String hostC = "localhost";
+        String hostD = "localhost";
+        String hostE = "localhost";
         int numRequests = 300;
         int concurrency = 10;
         int inputValue = 5;
@@ -125,6 +147,8 @@ public class LoadTestClient {
                     if (targets.length >= 1) hostA = targets[0].trim();
                     if (targets.length >= 2) hostB = targets[1].trim();
                     if (targets.length >= 3) hostC = targets[2].trim();
+                    if (targets.length >= 4) hostD = targets[3].trim();
+                    if (targets.length >= 5) hostE = targets[4].trim();
                     break;
                 case "--requests":
                     numRequests = Integer.parseInt(args[++i]);
@@ -145,7 +169,7 @@ public class LoadTestClient {
         }
 
         System.out.println("RMI Load Test Client");
-        System.out.println("Targets: " + hostA + ", " + hostB + ", " + hostC);
+        System.out.println("Targets: " + hostA + ", " + hostB + ", " + hostC + ", " + hostD + ", " + hostE);
         System.out.println("Requests: " + numRequests + ", Concurrency: " + concurrency);
         System.out.println("Input: " + inputValue + ", Work: " + workMs + "ms");
 
@@ -158,7 +182,7 @@ public class LoadTestClient {
         // Submit tasks
         int perThread = Math.max(1, numRequests / concurrency);
         for (int i = 0; i < concurrency; i++) {
-            futures.add(executor.submit(new PipelineWorker(hostA, hostB, hostC, perThread, inputValue, workMs)));
+            futures.add(executor.submit(new PipelineWorker(hostA, hostB, hostC, hostD, hostE, perThread, inputValue, workMs)));
         }
 
         // Collect results
@@ -179,7 +203,7 @@ public class LoadTestClient {
         try {
             new java.io.File(outputFile).getParentFile().mkdirs();
             try (FileWriter writer = new FileWriter(outputFile)) {
-                writer.write("input,computed,transformed,final_result,service_a,service_b,service_c,send_ts,recv_ts,rtt_ms,error\n");
+                writer.write("input,computed,transformed,aggregated,refined,final_result,service_a,service_b,service_c,service_d,service_e,send_ts,recv_ts,rtt_ms,error\n");
                 for (TestResult r : allResults) {
                     r.toCSV(writer);
                 }

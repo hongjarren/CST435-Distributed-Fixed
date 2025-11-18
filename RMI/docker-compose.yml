@@ -34,6 +34,28 @@ services:
       - "1101:1099"
     container_name: rmi-servicec
 
+  serviced:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    environment:
+      SERVICE_NAME: D
+      PORT: 1099
+    ports:
+      - "1102:1099"
+    container_name: rmi-serviced
+
+  servicee:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    environment:
+      SERVICE_NAME: E
+      PORT: 1099
+    ports:
+      - "1103:1099"
+    container_name: rmi-servicee
+
   client:
     build:
       context: .
@@ -42,11 +64,13 @@ services:
       - servicea
       - serviceb
       - servicec
+      - serviced
+      - servicee
     volumes:
       - ./results:/app/results
     command:
       - "--targets"
-      - "servicea,serviceb,servicec"
+      - "servicea,serviceb,servicec,serviced,servicee"
       - "--requests"
       - "300"
       - "--concurrency"

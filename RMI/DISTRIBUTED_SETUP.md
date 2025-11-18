@@ -1,6 +1,6 @@
 # Distributed Setup Guide - RMI Edition
 
-## 5-Laptop Distributed Experiment
+## 6-Laptop Distributed Experiment (5 Services + Client)
 
 This guide mirrors the gRPC setup but uses **Java RMI** instead of Python/gRPC.
 
@@ -11,8 +11,9 @@ This guide mirrors the gRPC setup but uses **Java RMI** instead of Python/gRPC.
 - **Laptop 1**: Service A (Java RMI)
 - **Laptop 2**: Service B (Java RMI)
 - **Laptop 3**: Service C (Java RMI)
-- **Laptop 4**: (spare/unused)
-- **Laptop 5**: Client (runs load test)
+- **Laptop 4**: Service D (Java RMI)
+- **Laptop 5**: Service E (Java RMI)
+- **Your Laptop**: Client (runs load test)
 
 ---
 
@@ -55,7 +56,9 @@ Find "IPv4 Address" under your network adapter:
 - Laptop 1: `192.168.1.10` (Service A)
 - Laptop 2: `192.168.1.11` (Service B)
 - Laptop 3: `192.168.1.12` (Service C)
-- Laptop 5: `192.168.1.20` (Client)
+- Laptop 4: `192.168.1.13` (Service D)
+- Laptop 5: `192.168.1.14` (Service E)
+- Your Laptop: `192.168.1.20` (Client)
 
 **Test connectivity:**
 ```powershell
@@ -75,7 +78,7 @@ Output: `target/rmi-distributed-1.0-jar-with-dependencies.jar`
 
 ---
 
-## Step 4: Open Firewall Port (Laptops 1, 2, 3)
+## Step 4: Open Firewall Port (Laptops 1, 2, 3, 4, 5)
 
 **PowerShell as Administrator:**
 
@@ -86,7 +89,7 @@ New-NetFirewallRule -DisplayName "Allow ICMPv4-In" -Protocol ICMPv4 -IcmpType 8 
 
 ---
 
-## Step 5: Run Services (Laptops 1, 2, 3)
+## Step 5: Run Services (Laptops 1, 2, 3, 4, 5)
 
 ### Laptop 1 (Service A)
 
@@ -118,18 +121,34 @@ $env:SERVICE_NAME = "C"
 java -cp target/rmi-distributed-1.0-jar-with-dependencies.jar com.cst435.ComputeServer
 ```
 
-**Keep all three terminals open.**
+### Laptop 4 (Service D)
+
+```powershell
+cd C:\Users\<YourUsername>\Desktop\CST435Distributed\RMI
+$env:SERVICE_NAME = "D"
+java -cp target/rmi-distributed-1.0-jar-with-dependencies.jar com.cst435.ComputeServer
+```
+
+### Laptop 5 (Service E)
+
+```powershell
+cd C:\Users\<YourUsername>\Desktop\CST435Distributed\RMI
+$env:SERVICE_NAME = "E"
+java -cp target/rmi-distributed-1.0-jar-with-dependencies.jar com.cst435.ComputeServer
+```
+
+**Keep all five terminals open.**
 
 ---
 
-## Step 6: Run Client (Laptop 5)
+## Step 6: Run Client (Your Laptop)
 
 ```powershell
 cd C:\Users\<YourUsername>\Desktop\CST435Distributed\RMI
 New-Item -ItemType Directory -Path ".\results" -Force | Out-Null
 
 java -cp target/rmi-distributed-1.0-jar-with-dependencies.jar com.cst435.LoadTestClient `
-  --targets "192.168.1.10,192.168.1.11,192.168.1.12" `
+  --targets "192.168.1.10,192.168.1.11,192.168.1.12,192.168.1.13,192.168.1.14" `
   --requests 300 `
   --concurrency 10 `
   --work_ms 10 `
@@ -137,26 +156,26 @@ java -cp target/rmi-distributed-1.0-jar-with-dependencies.jar com.cst435.LoadTes
   --out ".\results\results.csv"
 ```
 
-**Replace IPs** with your Service A, B, C addresses from Step 2.
+**Replace IPs** with your Service A, B, C, D, E addresses from Step 2.
 
 **Expected output:**
 ```
 RMI Load Test Client
-Targets: 192.168.1.10, 192.168.1.11, 192.168.1.12
+Targets: 192.168.1.10, 192.168.1.11, 192.168.1.12, 192.168.1.13, 192.168.1.14
 Requests: 300, Concurrency: 10
 
 === Experiment Summary ===
 Total requests: 300
-Total time: 3245ms (3.25s)
-Average RTT per request: 10.82ms
-Min RTT: 8ms
-Max RTT: 25ms
+Total time: ...ms
+Average RTT per request: ...ms
+Min RTT: ...ms
+Max RTT: ...ms
 Wrote 300 rows to .\results\results.csv
 ```
 
 ---
 
-## Step 7: Check Results (Laptop 5)
+## Step 7: Check Results (Your Laptop)
 
 ```powershell
 Invoke-Item ".\results\results.csv"
@@ -164,13 +183,21 @@ Invoke-Item ".\results\results.csv"
 
 **Expected columns:**
 ```
-input, computed, transformed, final_result, service_a, service_b, service_c, send_ts, recv_ts, rtt_ms, error
+input, computed, transformed, aggregated, refined, final_result, service_a, service_b, service_c, service_d, service_e, send_ts, recv_ts, rtt_ms, error
 ```
 
 **Example row (input=5):**
 ```
-5,10,20,60,192.168.1.10,192.168.1.11,192.168.1.12,1763126239680,1763126239686,6,
+5,10,20,60,55,27,192.168.1.10,192.168.1.11,192.168.1.12,192.168.1.13,192.168.1.14,1763126239680,1763126239686,6,
 ```
+
+**Calculation trace:**
+- Input: 5
+- After Service A (×2): 10
+- After Service B (+10): 20
+- After Service C (×3): 60
+- After Service D (-5): 55
+- After Service E (÷2): 27
 
 ---
 

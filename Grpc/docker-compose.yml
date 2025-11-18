@@ -28,6 +28,26 @@ services:
       - PORT=50051
     ports:
       - "50063:50051"
+  
+  serviced:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    environment:
+      - SERVICE_NAME=D
+      - PORT=50051
+    ports:
+      - "50064:50051"
+  
+  servicee:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    environment:
+      - SERVICE_NAME=E
+      - PORT=50051
+    ports:
+      - "50065:50051"
 
   client:
     build:
@@ -37,6 +57,8 @@ services:
       - servicea
       - serviceb
       - servicec
-    command: ["--targets", "servicea:50051,serviceb:50051,servicec:50051", "--requests", "300", "--concurrency", "10", "--work_ms", "10", "--out", "/tmp/results.csv"]
+      - serviced
+      - servicee
+    command: ["--targets", "servicea:50051,serviceb:50051,servicec:50051,serviced:50051,servicee:50051", "--requests", "300", "--concurrency", "10", "--work_ms", "10", "--out", "/tmp/results.csv"]
     volumes:
       - ./results:/tmp

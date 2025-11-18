@@ -5,7 +5,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
 /**
- * RMI Server for one of the three services (A, B, or C).
+ * RMI Server for one of the five services (A, B, C, D, or E).
  * Service type is passed as environment variable SERVICE_NAME.
  * Binds the service to the RMI registry on port 1099.
  */
@@ -17,8 +17,8 @@ public class ComputeServer {
         }
         serviceName = serviceName.toUpperCase();
 
-        if (!serviceName.matches("[ABC]")) {
-            System.err.println("Invalid SERVICE_NAME: " + serviceName + " (must be A, B, or C)");
+        if (!serviceName.matches("[ABCDE]")) {
+            System.err.println("Invalid SERVICE_NAME: " + serviceName + " (must be A, B, C, D, or E)");
             System.exit(1);
         }
 

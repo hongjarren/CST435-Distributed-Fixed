@@ -11,6 +11,12 @@ service Compute {
   
   // Service C: Aggregate - aggregates results and returns final answer
   rpc Aggregate(AggregateRequest) returns (AggregateResponse) {}
+  
+  // Service D: Refine - refines the aggregated result
+  rpc Refine(RefineRequest) returns (RefineResponse) {}
+  
+  // Service E: Finalize - finalizes and returns the ultimate result
+  rpc Finalize(FinalizeRequest) returns (FinalizeResponse) {}
 }
 
 message ComputeRequest {
@@ -41,7 +47,29 @@ message AggregateRequest {
 }
 
 message AggregateResponse {
-  int32 final_result = 1;  // final result (e.g., transformed_value * 3)
-  string pipeline = 2;  // "A->B->C"
+  int32 result = 1;  // aggregated result (e.g., transformed_value * 3)
+  string service_name = 2;
+  int64 timestamp_ms = 3;
+}
+
+message RefineRequest {
+  int32 aggregated_value = 1;  // result from Aggregate
+  int32 work_ms = 2;
+}
+
+message RefineResponse {
+  int32 result = 1;  // refined result (e.g., aggregated_value - 5)
+  string service_name = 2;
+  int64 timestamp_ms = 3;
+}
+
+message FinalizeRequest {
+  int32 refined_value = 1;  // result from Refine
+  int32 work_ms = 2;
+}
+
+message FinalizeResponse {
+  int32 final_result = 1;  // final result (e.g., refined_value / 2)
+  string pipeline = 2;  // "A->B->C->D->E"
   int64 timestamp_ms = 3;
 }

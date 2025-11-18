@@ -29,6 +29,16 @@ class ComputeStub(object):
                 request_serializer=compute__pb2.AggregateRequest.SerializeToString,
                 response_deserializer=compute__pb2.AggregateResponse.FromString,
                 )
+        self.Refine = channel.unary_unary(
+                '/demo.Compute/Refine',
+                request_serializer=compute__pb2.RefineRequest.SerializeToString,
+                response_deserializer=compute__pb2.RefineResponse.FromString,
+                )
+        self.Finalize = channel.unary_unary(
+                '/demo.Compute/Finalize',
+                request_serializer=compute__pb2.FinalizeRequest.SerializeToString,
+                response_deserializer=compute__pb2.FinalizeResponse.FromString,
+                )
 
 
 class ComputeServicer(object):
@@ -55,6 +65,20 @@ class ComputeServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def Refine(self, request, context):
+        """Service D: Refine - refines the aggregated result
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Finalize(self, request, context):
+        """Service E: Finalize - finalizes and returns the ultimate result
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ComputeServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -72,6 +96,16 @@ def add_ComputeServicer_to_server(servicer, server):
                     servicer.Aggregate,
                     request_deserializer=compute__pb2.AggregateRequest.FromString,
                     response_serializer=compute__pb2.AggregateResponse.SerializeToString,
+            ),
+            'Refine': grpc.unary_unary_rpc_method_handler(
+                    servicer.Refine,
+                    request_deserializer=compute__pb2.RefineRequest.FromString,
+                    response_serializer=compute__pb2.RefineResponse.SerializeToString,
+            ),
+            'Finalize': grpc.unary_unary_rpc_method_handler(
+                    servicer.Finalize,
+                    request_deserializer=compute__pb2.FinalizeRequest.FromString,
+                    response_serializer=compute__pb2.FinalizeResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -131,5 +165,39 @@ class Compute(object):
         return grpc.experimental.unary_unary(request, target, '/demo.Compute/Aggregate',
             compute__pb2.AggregateRequest.SerializeToString,
             compute__pb2.AggregateResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Refine(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/demo.Compute/Refine',
+            compute__pb2.RefineRequest.SerializeToString,
+            compute__pb2.RefineResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Finalize(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/demo.Compute/Finalize',
+            compute__pb2.FinalizeRequest.SerializeToString,
+            compute__pb2.FinalizeResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

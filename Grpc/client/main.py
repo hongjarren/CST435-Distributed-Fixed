@@ -11,12 +11,14 @@ import os
 PORT_DEFAULT = 50051
 
 
-def pipeline_call(service_a, service_b, service_c, input_value, work_ms, timeout=10):
+def pipeline_call(service_a, service_b, service_c, service_d, service_e, input_value, work_ms, timeout=10):
     """
     Execute the pipeline: 
     1. Call service_a.Compute(value) -> computed_result
     2. Call service_b.Transform(computed_result) -> transformed_result
-    3. Call service_c.Aggregate(transformed_result) -> final_result
+    3. Call service_c.Aggregate(transformed_result) -> aggregated_result
+    4. Call service_d.Refine(aggregated_result) -> refined_result
+    5. Call service_e.Finalize(refined_result) -> final_result
     """
     try:
         send_ts = int(time.time() * 1000)
@@ -40,7 +42,21 @@ def pipeline_call(service_a, service_b, service_c, input_value, work_ms, timeout
         stub_c = compute_pb2_grpc.ComputeStub(chan_c)
         req_c = compute_pb2.AggregateRequest(transformed_value=transformed_value, work_ms=work_ms)
         resp_c = stub_c.Aggregate(req_c, timeout=timeout)
-        final_result = resp_c.final_result
+        aggregated_value = resp_c.result
+        
+        # Step 4: Service D - Refine
+        chan_d = grpc.insecure_channel(service_d)
+        stub_d = compute_pb2_grpc.ComputeStub(chan_d)
+        req_d = compute_pb2.RefineRequest(aggregated_value=aggregated_value, work_ms=work_ms)
+        resp_d = stub_d.Refine(req_d, timeout=timeout)
+        refined_value = resp_d.result
+        
+        # Step 5: Service E - Finalize
+        chan_e = grpc.insecure_channel(service_e)
+        stub_e = compute_pb2_grpc.ComputeStub(chan_e)
+        req_e = compute_pb2.FinalizeRequest(refined_value=refined_value, work_ms=work_ms)
+        resp_e = stub_e.Finalize(req_e, timeout=timeout)
+        final_result = resp_e.final_result
         
         recv_ts = int(time.time() * 1000)
         rtt = recv_ts - send_ts
@@ -49,10 +65,14 @@ def pipeline_call(service_a, service_b, service_c, input_value, work_ms, timeout
             'input': input_value,
             'computed': computed_value,
             'transformed': transformed_value,
+            'aggregated': aggregated_value,
+            'refined': refined_value,
             'final_result': final_result,
             'service_a': service_a,
             'service_b': service_b,
             'service_c': service_c,
+            'service_d': service_d,
+            'service_e': service_e,
             'send_ts': send_ts,
             'recv_ts': recv_ts,
             'rtt_ms': rtt,
@@ -64,10 +84,14 @@ def pipeline_call(service_a, service_b, service_c, input_value, work_ms, timeout
             'input': input_value,
             'computed': None,
             'transformed': None,
+            'aggregated': None,
+            'refined': None,
             'final_result': None,
             'service_a': service_a,
             'service_b': service_b,
             'service_c': service_c,
+            'service_d': service_d,
+            'service_e': service_e,
             'send_ts': send_ts if 'send_ts' in locals() else None,
             'recv_ts': recv_ts,
             'rtt_ms': None,
@@ -75,17 +99,17 @@ def pipeline_call(service_a, service_b, service_c, input_value, work_ms, timeout
         }
 
 
-def worker(service_a, service_b, service_c, n, input_value, work_ms):
+def worker(service_a, service_b, service_c, service_d, service_e, n, input_value, work_ms):
     rows = []
     for i in range(n):
-        row = pipeline_call(service_a, service_b, service_c, input_value, work_ms)
+        row = pipeline_call(service_a, service_b, service_c, service_d, service_e, input_value, work_ms)
         rows.append(row)
     return rows
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--targets', required=True, help='comma-separated list of service_a:port,service_b:port,service_c:port')
+    parser.add_argument('--targets', required=True, help='comma-separated list of service_a:port,service_b:port,service_c:port,service_d:port,service_e:port')
     parser.add_argument('--requests', type=int, default=100, help='total requests per pipeline')
     parser.add_argument('--concurrency', type=int, default=10)
     parser.add_argument('--work_ms', type=int, default=0)
@@ -93,13 +117,13 @@ def main():
     parser.add_argument('--out', type=str, default='/tmp/results.csv')
     args = parser.parse_args()
 
-    # Parse targets: "servicea:50051,serviceb:50051,servicec:50051"
+    # Parse targets: "servicea:50051,serviceb:50051,servicec:50051,serviced:50051,servicee:50051"
     targets = [t.strip() for t in args.targets.split(',') if t.strip()]
-    if len(targets) != 3:
-        print("ERROR: Expected 3 targets (service_a, service_b, service_c)")
+    if len(targets) != 5:
+        print("ERROR: Expected 5 targets (service_a, service_b, service_c, service_d, service_e)")
         return
     
-    service_a, service_b, service_c = targets
+    service_a, service_b, service_c, service_d, service_e = targets
 
     # Split requests across concurrency
     per_thread = max(1, args.requests // args.concurrency)
@@ -108,7 +132,7 @@ def main():
     with ThreadPoolExecutor(max_workers=args.concurrency) as ex:
         futures = []
         for i in range(args.concurrency):
-            futures.append(ex.submit(worker, service_a, service_b, service_c, per_thread, args.input, args.work_ms))
+            futures.append(ex.submit(worker, service_a, service_b, service_c, service_d, service_e, per_thread, args.input, args.work_ms))
 
         for fut in as_completed(futures):
             try:
@@ -118,7 +142,7 @@ def main():
                 print("worker failed:", e)
 
     # Write CSV
-    fieldnames = ['input', 'computed', 'transformed', 'final_result', 'service_a', 'service_b', 'service_c', 'send_ts', 'recv_ts', 'rtt_ms', 'error']
+    fieldnames = ['input', 'computed', 'transformed', 'aggregated', 'refined', 'final_result', 'service_a', 'service_b', 'service_c', 'service_d', 'service_e', 'send_ts', 'recv_ts', 'rtt_ms', 'error']
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     with open(args.out, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)

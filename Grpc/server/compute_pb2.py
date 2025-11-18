@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rcompute.proto\x12\x04\x64\x65mo\"0\n\x0e\x43omputeRequest\x12\r\n\x05value\x18\x01 \x01(\x05\x12\x0f\n\x07work_ms\x18\x02 \x01(\x05\"M\n\x0f\x43omputeResponse\x12\x0e\n\x06result\x18\x01 \x01(\x05\x12\x14\n\x0cservice_name\x18\x02 \x01(\t\x12\x14\n\x0ctimestamp_ms\x18\x03 \x01(\x03\";\n\x10TransformRequest\x12\x16\n\x0e\x63omputed_value\x18\x01 \x01(\x05\x12\x0f\n\x07work_ms\x18\x02 \x01(\x05\"O\n\x11TransformResponse\x12\x0e\n\x06result\x18\x01 \x01(\x05\x12\x14\n\x0cservice_name\x18\x02 \x01(\t\x12\x14\n\x0ctimestamp_ms\x18\x03 \x01(\x03\">\n\x10\x41ggregateRequest\x12\x19\n\x11transformed_value\x18\x01 \x01(\x05\x12\x0f\n\x07work_ms\x18\x02 \x01(\x05\"Q\n\x11\x41ggregateResponse\x12\x14\n\x0c\x66inal_result\x18\x01 \x01(\x05\x12\x10\n\x08pipeline\x18\x02 \x01(\t\x12\x14\n\x0ctimestamp_ms\x18\x03 \x01(\x03\x32\xc3\x01\n\x07\x43ompute\x12\x38\n\x07\x43ompute\x12\x14.demo.ComputeRequest\x1a\x15.demo.ComputeResponse\"\x00\x12>\n\tTransform\x12\x16.demo.TransformRequest\x1a\x17.demo.TransformResponse\"\x00\x12>\n\tAggregate\x12\x16.demo.AggregateRequest\x1a\x17.demo.AggregateResponse\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rcompute.proto\x12\x04\x64\x65mo\"0\n\x0e\x43omputeRequest\x12\r\n\x05value\x18\x01 \x01(\x05\x12\x0f\n\x07work_ms\x18\x02 \x01(\x05\"M\n\x0f\x43omputeResponse\x12\x0e\n\x06result\x18\x01 \x01(\x05\x12\x14\n\x0cservice_name\x18\x02 \x01(\t\x12\x14\n\x0ctimestamp_ms\x18\x03 \x01(\x03\";\n\x10TransformRequest\x12\x16\n\x0e\x63omputed_value\x18\x01 \x01(\x05\x12\x0f\n\x07work_ms\x18\x02 \x01(\x05\"O\n\x11TransformResponse\x12\x0e\n\x06result\x18\x01 \x01(\x05\x12\x14\n\x0cservice_name\x18\x02 \x01(\t\x12\x14\n\x0ctimestamp_ms\x18\x03 \x01(\x03\">\n\x10\x41ggregateRequest\x12\x19\n\x11transformed_value\x18\x01 \x01(\x05\x12\x0f\n\x07work_ms\x18\x02 \x01(\x05\"O\n\x11\x41ggregateResponse\x12\x0e\n\x06result\x18\x01 \x01(\x05\x12\x14\n\x0cservice_name\x18\x02 \x01(\t\x12\x14\n\x0ctimestamp_ms\x18\x03 \x01(\x03\":\n\rRefineRequest\x12\x18\n\x10\x61ggregated_value\x18\x01 \x01(\x05\x12\x0f\n\x07work_ms\x18\x02 \x01(\x05\"L\n\x0eRefineResponse\x12\x0e\n\x06result\x18\x01 \x01(\x05\x12\x14\n\x0cservice_name\x18\x02 \x01(\t\x12\x14\n\x0ctimestamp_ms\x18\x03 \x01(\x03\"9\n\x0f\x46inalizeRequest\x12\x15\n\rrefined_value\x18\x01 \x01(\x05\x12\x0f\n\x07work_ms\x18\x02 \x01(\x05\"P\n\x10\x46inalizeResponse\x12\x14\n\x0c\x66inal_result\x18\x01 \x01(\x05\x12\x10\n\x08pipeline\x18\x02 \x01(\t\x12\x14\n\x0ctimestamp_ms\x18\x03 \x01(\x03\x32\xb7\x02\n\x07\x43ompute\x12\x38\n\x07\x43ompute\x12\x14.demo.ComputeRequest\x1a\x15.demo.ComputeResponse\"\x00\x12>\n\tTransform\x12\x16.demo.TransformRequest\x1a\x17.demo.TransformResponse\"\x00\x12>\n\tAggregate\x12\x16.demo.AggregateRequest\x1a\x17.demo.AggregateResponse\"\x00\x12\x35\n\x06Refine\x12\x13.demo.RefineRequest\x1a\x14.demo.RefineResponse\"\x00\x12;\n\x08\x46inalize\x12\x15.demo.FinalizeRequest\x1a\x16.demo.FinalizeResponse\"\x00\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -32,7 +32,15 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _globals['_AGGREGATEREQUEST']._serialized_start=294
   _globals['_AGGREGATEREQUEST']._serialized_end=356
   _globals['_AGGREGATERESPONSE']._serialized_start=358
-  _globals['_AGGREGATERESPONSE']._serialized_end=439
-  _globals['_COMPUTE']._serialized_start=442
-  _globals['_COMPUTE']._serialized_end=637
+  _globals['_AGGREGATERESPONSE']._serialized_end=437
+  _globals['_REFINEREQUEST']._serialized_start=439
+  _globals['_REFINEREQUEST']._serialized_end=497
+  _globals['_REFINERESPONSE']._serialized_start=499
+  _globals['_REFINERESPONSE']._serialized_end=575
+  _globals['_FINALIZEREQUEST']._serialized_start=577
+  _globals['_FINALIZEREQUEST']._serialized_end=634
+  _globals['_FINALIZERESPONSE']._serialized_start=636
+  _globals['_FINALIZERESPONSE']._serialized_end=716
+  _globals['_COMPUTE']._serialized_start=719
+  _globals['_COMPUTE']._serialized_end=1030
 # @@protoc_insertion_point(module_scope)

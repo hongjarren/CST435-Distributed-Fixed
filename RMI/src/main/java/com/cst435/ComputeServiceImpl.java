@@ -48,6 +48,28 @@ public class ComputeServiceImpl extends UnicastRemoteObject implements ComputeSe
         System.out.println("[Service C] aggregate(" + transformedValue + ") = " + result);
         return result;
     }
+    
+    @Override
+    public int refine(int aggregatedValue, int workMs) throws RemoteException {
+        if (!serviceName.equals("D")) {
+            throw new RemoteException("This service does not implement refine()");
+        }
+        simulateWork(workMs);
+        int result = aggregatedValue - 5;
+        System.out.println("[Service D] refine(" + aggregatedValue + ") = " + result);
+        return result;
+    }
+    
+    @Override
+    public int finalize(int refinedValue, int workMs) throws RemoteException {
+        if (!serviceName.equals("E")) {
+            throw new RemoteException("This service does not implement finalize()");
+        }
+        simulateWork(workMs);
+        int result = refinedValue / 2;
+        System.out.println("[Service E] finalize(" + refinedValue + ") = " + result);
+        return result;
+    }
 
     private void simulateWork(int workMs) {
         if (workMs > 0) {

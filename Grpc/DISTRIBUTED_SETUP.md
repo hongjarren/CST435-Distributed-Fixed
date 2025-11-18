@@ -1,12 +1,14 @@
 # Distributed gRPC Pipeline Setup Guide
 
 ## Overview
-This project implements a 3-stage gRPC pipeline across multiple physical laptops:
+This project implements a **5-stage gRPC pipeline** across multiple physical laptops:
 - **Service A (Compute)**: Multiplies input by 2
 - **Service B (Transform)**: Adds 10 to result
 - **Service C (Aggregate)**: Multiplies by 3
+- **Service D (Refine)**: Subtracts 5 from result
+- **Service E (Finalize)**: Divides by 2 for final result
 
-**Pipeline Flow**: Input → Service A → Service B → Service C → Final Result
+**Pipeline Flow**: Input → Service A → Service B → Service C → Service D → Service E → Final Result
 
 ---
 
@@ -14,8 +16,9 @@ This project implements a 3-stage gRPC pipeline across multiple physical laptops
 - **Laptop 1**: Service A (Docker container)
 - **Laptop 2**: Service B (Docker container)
 - **Laptop 3**: Service C (Docker container)
-- **Laptop 4**: (spare/unused)
-- **Laptop 5**: Client (runs load test, generates results.csv)
+- **Laptop 4**: Service D (Docker container)
+- **Laptop 5**: Service E (Docker container)
+- **Your Laptop**: Client (runs load test, generates results.csv)
 
 All laptops must be on the **same network** and able to ping each other.
 
@@ -77,7 +80,9 @@ Look for "IPv4 Address" under your network adapter. Example:
 - Laptop 1 (Service A): `192.168.1.10`
 - Laptop 2 (Service B): `192.168.1.11`
 - Laptop 3 (Service C): `192.168.1.12`
-- Laptop 5 (Client): `192.168.1.20`
+- Laptop 4 (Service D): `192.168.1.13`
+- Laptop 5 (Service E): `192.168.1.14`
+- Your Laptop (Client): `192.168.1.20`
 
 **Write these down!** You'll need them in Step 4.
 
@@ -90,24 +95,26 @@ ping 192.168.1.10
 
 ## Step 3: Build Docker Images (All Laptops)
 
-On **each of laptops 1, 2, 3, and 5**, build the images:
+On **each of laptops 1, 2, 3, 4, 5, and your client laptop**, build the images:
 
 ```powershell
 cd C:\Users\<YourUsername>\Desktop\CST435Docker
 docker-compose build
 ```
 
-This creates 4 images:
+This creates images for all services including:
 - `cst435docker-servicea`
 - `cst435docker-serviceb`
 - `cst435docker-servicec`
+- `cst435docker-serviced`
+- `cst435docker-servicee`
 - `cst435docker-client`
 
-Each laptop has all 4 images, but will only run one service.
+Each laptop has all images, but will only run one service.
 
 ---
 
-## Step 4: Run Services (Laptops 1, 2, 3)
+## Step 4: Run Services (Laptops 1, 2, 3, 4, 5)
 
 ### Laptop 1 (Service A)
 ```powershell
@@ -136,19 +143,37 @@ docker run -e SERVICE_NAME=C -e PORT=50051 -p 50051:50051 --rm cst435docker-serv
 C starting on 0.0.0.0:50051
 ```
 
+### Laptop 4 (Service D)
+```powershell
+docker run -e SERVICE_NAME=D -e PORT=50051 -p 50051:50051 --rm cst435docker-serviced
+```
+**Output:**
+```
+D starting on 0.0.0.0:50051
+```
+
+### Laptop 5 (Service E)
+```powershell
+docker run -e SERVICE_NAME=E -e PORT=50051 -p 50051:50051 --rm cst435docker-servicee
+```
+**Output:**
+```
+E starting on 0.0.0.0:50051
+```
+
 **Keep these terminals open** — the services must be running for the client to work.
 
 ---
 
-## Step 5: Run Client (Laptop 5 - Your Laptop)
+## Step 5: Run Client (Your Laptop)
 
-On **Laptop 5**, open a new PowerShell and run:
+On **your laptop**, open a new PowerShell and run:
 
 ```powershell
 cd C:\Users\<YourUsername>\Desktop\CST435Docker\client
 
 python main.py `
-  --targets "192.168.1.10:50051,192.168.1.11:50051,192.168.1.12:50051" `
+  --targets "192.168.1.10:50051,192.168.1.11:50051,192.168.1.12:50051,192.168.1.13:50051,192.168.1.14:50051" `
   --requests 300 `
   --concurrency 10 `
   --work_ms 10 `
@@ -157,15 +182,22 @@ python main.py `
 ```
 
 **Replace the IP addresses** with the actual IPs from Step 2.
+**Format**: `service_a_ip:port,service_b_ip:port,service_c_ip:port,service_d_ip:port,service_e_ip:port`
 
 **Expected output:**
 ```
+=== Experiment Summary ===
+Total requests: 300
+Total time: ...ms
+Average RTT per request: ...ms
+Min RTT: ...ms
+Max RTT: ...ms
 Wrote 300 rows to C:\Users\<YourUsername>\Desktop\CST435Docker\results\results.csv
 ```
 
 ---
 
-## Step 6: Check Results (Laptop 5)
+## Step 6: Check Results (Your Laptop)
 
 Open the results file:
 ```powershell
@@ -174,20 +206,22 @@ Invoke-Item C:\Users\<YourUsername>\Desktop\CST435Docker\results\results.csv
 
 **Expected CSV columns:**
 ```
-input, computed, transformed, final_result, service_a, service_b, service_c, send_ts, recv_ts, rtt_ms, error
+input, computed, transformed, aggregated, refined, final_result, service_a, service_b, service_c, service_d, service_e, send_ts, recv_ts, rtt_ms, error
 ```
 
 **Example row (input=5):**
 ```
-5, 10, 20, 60, 192.168.1.10:50051, 192.168.1.11:50051, 192.168.1.12:50051, ..., ..., 150, 
+5, 10, 20, 60, 55, 27, 192.168.1.10:50051, 192.168.1.11:50051, 192.168.1.12:50051, 192.168.1.13:50051, 192.168.1.14:50051, ..., ..., 250, 
 ```
 
 **Calculation trace:**
 - Input: 5
-- After Service A: 5 × 2 = 10
-- After Service B: 10 + 10 = 20
-- After Service C: 20 × 3 = 60
-- Final Result: 60
+- After Service A (×2): 5 × 2 = 10
+- After Service B (+10): 10 + 10 = 20
+- After Service C (×3): 20 × 3 = 60
+- After Service D (-5): 60 - 5 = 55
+- After Service E (÷2): 55 ÷ 2 = 27
+- Final Result: 27
 
 ---
 
@@ -215,19 +249,21 @@ Desktop/CST435Docker/results/    (folder, can be empty initially)
 
 ## Comparison: Local vs Distributed
 
-### Local (Single Laptop - What You've Been Doing)
+### Local (Single Laptop)
 ```
 docker-compose up --build
-# Client calls: servicea:50051 (Docker DNS)
+# Client calls: servicea:50051,serviceb:50051,servicec:50051,serviced:50051,servicee:50051 (Docker DNS)
 ```
 
-### Distributed (5 Laptops - What You're Doing Now)
+### Distributed (6 Laptops - What You're Doing Now)
 ```
 # Laptop 1: docker run ... cst435docker-servicea
 # Laptop 2: docker run ... cst435docker-serviceb
 # Laptop 3: docker run ... cst435docker-servicec
-# Laptop 5: python client/main.py --targets "192.168.1.10:50051,..."
-# Client calls: 192.168.1.10:50051 (Real IP addresses)
+# Laptop 4: docker run ... cst435docker-serviced
+# Laptop 5: docker run ... cst435docker-servicee
+# Your Laptop: python client/main.py --targets "192.168.1.10:50051,..."
+# Client calls: Real IP addresses for all 5 services
 ```
 
 ---
@@ -261,13 +297,13 @@ docker-compose up --build
 **Setup:**
 - Requests: 300 (total calls through the pipeline)
 - Concurrency: 10 (10 parallel requests)
-- Work time: 10ms per service (3 services = 30ms total per request)
+- Work time: 10ms per service (5 services = 50ms total per request)
 - Input value: 5
 
 **Expected Results in CSV:**
 - 300 rows of results
-- RTT (round-trip time) ≈ 30ms + network latency
-- All final_result values should be 60 (because input=5)
+- RTT (round-trip time) ≈ 50ms + network latency
+- All final_result values should be 27 (because input=5 → 10 → 20 → 60 → 55 → 27)
 - Some errors may occur due to network issues
 
 ---

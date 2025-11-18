@@ -47,7 +47,7 @@ class ComputeServicer(compute_pb2_grpc.ComputeServicer):
         )
     
     def Aggregate(self, request, context):
-        """Service C: multiply by 3 and return final result"""
+        """Service C: multiply by 3 and return aggregated result"""
         work_ms = request.work_ms if request.work_ms else 0
         time.sleep(work_ms / 1000.0)
         
@@ -56,8 +56,38 @@ class ComputeServicer(compute_pb2_grpc.ComputeServicer):
         timestamp_ms = int(time.time() * 1000)
         
         return compute_pb2.AggregateResponse(
+            result=result,
+            service_name=SERVICE_NAME,
+            timestamp_ms=timestamp_ms
+        )
+    
+    def Refine(self, request, context):
+        """Service D: subtract 5 from aggregated value"""
+        work_ms = request.work_ms if request.work_ms else 0
+        time.sleep(work_ms / 1000.0)
+        
+        # Refine: aggregated_value - 5
+        result = request.aggregated_value - 5
+        timestamp_ms = int(time.time() * 1000)
+        
+        return compute_pb2.RefineResponse(
+            result=result,
+            service_name=SERVICE_NAME,
+            timestamp_ms=timestamp_ms
+        )
+    
+    def Finalize(self, request, context):
+        """Service E: divide refined value by 2 and return final result"""
+        work_ms = request.work_ms if request.work_ms else 0
+        time.sleep(work_ms / 1000.0)
+        
+        # Finalize: refined_value / 2
+        result = request.refined_value // 2  # integer division
+        timestamp_ms = int(time.time() * 1000)
+        
+        return compute_pb2.FinalizeResponse(
             final_result=result,
-            pipeline="A->B->C",
+            pipeline="A->B->C->D->E",
             timestamp_ms=timestamp_ms
         )
 
