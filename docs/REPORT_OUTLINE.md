@@ -32,9 +32,17 @@ This outline maps directly to your assignment objectives and report guidelines. 
 ---
 
 ## 1. Executive Summary
-- Objective: Install and use Docker, gRPC (and RMI), solve multi-invocation problem, compare single vs distributed.
-- Approach: 5-stage pipeline (A×2 → B+10 → C×3 → D-5 → E÷2) implemented in Python gRPC and Java RMI; run locally and across multiple machines/containers.
-- Key Findings: One–two bullet highlights on latency/throughput and scaling, Docker overhead, gRPC vs RMI.
+- Objective: Install and use Docker with gRPC (Python) and RMI (Java) to solve a multi-invocation problem, and compare single-node vs distributed performance.
+- Approach: Implement and evaluate a 5-stage business-logic pipeline across both stacks and deployments. The services perform realistic operations:
+  - Service A — Inventory: value + 100
+  - Service B — Sales tax: int(value × 1.15)
+  - Service C — Shipping: 50 + (value // 10)
+  - Service D — Processing fee: int(value × 1.025)
+  - Service E — Currency rounding: (value // 5) × 5
+- Headline Result (example run): For input 5, pipeline yields final result 60 (5 → 105 → 120 → 62 → 63 → 60).
+- Key Findings (example local run; replace with your measured data):
+  - gRPC (300 req, concurrency 10, work_ms=10): Total time ≈ 1.76s, avg RTT ≈ 58ms.
+  - RMI  (300 req, concurrency 10, work_ms=10): Total time ≈ 1.97s, avg RTT ≈ 66ms.
 
 ## 2. Motivation & Problem Statement
 - Why distributed invocation? Real-time processing, scalability, latency trade-offs.
@@ -48,20 +56,20 @@ This outline maps directly to your assignment objectives and report guidelines. 
 
 ## 4. System Design
 - Architecture overview diagram: client → Service A → Service B → Service C → Service D → Service E.
-- Sequence diagram or call flow: request/response across A/B/C/D/E.
-- Data model/API summary: `proto/compute.proto` messages and RPCs; RMI interface.
-- Work simulation knobs: `work_ms` delay; concurrency settings.
+- Sequence diagram or call flow: request/response across A/B/C/D/E. Each stage implements a distinct business operation (Inventory, Tax, Shipping, Fee, Round), making the flow resemble a compact commerce/invoicing pipeline.
+- Data model/API summary: `Grpc/proto/compute.proto` messages and RPCs; RMI interface. All services exchange integers and accept `work_ms` to simulate server-side work.
+- Work simulation knobs: `work_ms` delay; client-side `concurrency` and `requests`.
 
 ## 5. Implementation Summary (gRPC and RMI)
 - gRPC (Python):
-  - Server: `server/main.py` (A/B/C/D/E logic; ports; health/logging).
-  - Client: `client/main.py` (pipeline_call; CSV output; summary stats).
-  - Proto/stubs: `proto/compute.proto` and generated files.
+  - Server: `Grpc/server/main.py` implements the five service methods with the operations above. Environment: `SERVICE_NAME` (A–E), `PORT` (default 50051).
+  - Client: `Grpc/client/main.py` executes A→B→C→D→E, writes per-request CSV, prints summary (total, time, avg/min/max RTT).
+  - Proto/stubs: `Grpc/proto/compute.proto` defines `Compute`, `Transform`, `Aggregate`, `Refine`, `Finalize`.
 - RMI (Java):
-  - Interface/impl: `RMI/src/main/java/com/cst435/ComputeService*.java`.
-  - Server bootstrap: `ComputeServer.java` (registry 1099, binds A/B/C/D/E).
-  - Load tester: `LoadTestClient.java` (concurrency, CSV, summary).
-- Notable design choices: error handling, retries (if any), timeouts, thread model.
+  - Interface/impl: `RMI/src/main/java/com/cst435/ComputeService*.java` implements the same five-stage semantics.
+  - Server bootstrap: `ComputeServer.java` binds services A–E to registry 1099.
+  - Load tester: `LoadTestClient.java` drives the pipeline and writes CSV/summary.
+- Notable design choices: keep types simple (ints) for apples-to-apples comparison; use `work_ms` to control server work; identical client load parameters across stacks.
 
 ## 6. Environment & Deployment
 - Hardware: CPU, RAM, network (Wi‑Fi/LAN), OS versions.
@@ -77,9 +85,14 @@ This outline maps directly to your assignment objectives and report guidelines. 
 - Validity: controlling noise, repeated runs, outlier handling.
 
 ## 8. Results
-- Tables: summary stats per scenario.
+- Tables: summary stats per scenario (single-node vs distributed, gRPC vs RMI).
 - Figures: bar/line charts for RTT and throughput; error rate if applicable.
-- Representative logs/CSV snippet: path to `results/results.csv`.
+- Representative logs/CSV snippet: paths to CSVs. Example first row (input=5):
+
+  input,computed,transformed,aggregated,refined,final_result,...
+  5,105,120,62,63,60,...
+
+This reflects the updated business-logic pipeline and the final result 60.
 
 ## 9. Discussion
 - Interpretation: when/why distributed helps; overheads (network, Docker).

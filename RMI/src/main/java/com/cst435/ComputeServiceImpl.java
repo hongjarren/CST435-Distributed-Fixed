@@ -22,7 +22,8 @@ public class ComputeServiceImpl extends UnicastRemoteObject implements ComputeSe
             throw new RemoteException("This service does not implement compute()");
         }
         simulateWork(workMs);
-        int result = value * 2;
+        // Inventory Check: add incoming stock to base inventory (100)
+        int result = value + 100;
         System.out.println("[Service A] compute(" + value + ") = " + result);
         return result;
     }
@@ -33,7 +34,8 @@ public class ComputeServiceImpl extends UnicastRemoteObject implements ComputeSe
             throw new RemoteException("This service does not implement transform()");
         }
         simulateWork(workMs);
-        int result = computedValue + 10;
+        // Apply Tax: calculate total with 15% sales tax
+        int result = (int)(computedValue * 1.15);
         System.out.println("[Service B] transform(" + computedValue + ") = " + result);
         return result;
     }
@@ -44,7 +46,8 @@ public class ComputeServiceImpl extends UnicastRemoteObject implements ComputeSe
             throw new RemoteException("This service does not implement aggregate()");
         }
         simulateWork(workMs);
-        int result = transformedValue * 3;
+        // Calculate Shipping: $50 base cost + $1 per 10 units
+        int result = 50 + (transformedValue / 10);
         System.out.println("[Service C] aggregate(" + transformedValue + ") = " + result);
         return result;
     }
@@ -55,7 +58,8 @@ public class ComputeServiceImpl extends UnicastRemoteObject implements ComputeSe
             throw new RemoteException("This service does not implement refine()");
         }
         simulateWork(workMs);
-        int result = aggregatedValue - 5;
+        // Processing Fee: add 2.5% transaction fee
+        int result = (int)(aggregatedValue * 1.025);
         System.out.println("[Service D] refine(" + aggregatedValue + ") = " + result);
         return result;
     }
@@ -66,7 +70,8 @@ public class ComputeServiceImpl extends UnicastRemoteObject implements ComputeSe
             throw new RemoteException("This service does not implement finalize()");
         }
         simulateWork(workMs);
-        int result = refinedValue / 2;
+        // Round to Currency: round final amount to nearest $5
+        int result = (refinedValue / 5) * 5;
         System.out.println("[Service E] finalize(" + refinedValue + ") = " + result);
         return result;
     }

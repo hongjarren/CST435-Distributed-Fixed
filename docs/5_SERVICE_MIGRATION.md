@@ -7,22 +7,22 @@ This document summarizes the changes made to extend the pipeline from 3 services
 ## What Changed
 
 ### Added Services
-- **Service D (Refine)**: Subtracts 5 from aggregated value
-- **Service E (Finalize)**: Divides refined value by 2
+- **Service D (Processing Fee)**: Adds a 2.5% transaction fee (`int(value * 1.025)`) to the aggregated value
+- **Service E (Currency Rounding)**: Rounds the refined value to the nearest $5 (`(value // 5) * 5`)
 
 ### New Pipeline Flow
 ```
 Input (5)
-  ↓ A: ×2
-Computed (10)
-  ↓ B: +10
-Transformed (20)
-  ↓ C: ×3
-Aggregated (60)
-  ↓ D: -5
-Refined (55)
-  ↓ E: ÷2
-Final Result (27)
+  ↓ A: Inventory (+100)
+Computed (105)
+  ↓ B: Sales tax (×1.15 → int)
+Transformed (120)
+  ↓ C: Shipping (50 + value//10)
+Aggregated (62)
+  ↓ D: Processing fee (×1.025 → int)
+Refined (63)
+  ↓ E: Currency rounding (nearest $5)
+Final Result (60)
 ```
 
 ---
@@ -78,7 +78,7 @@ command: ["--targets", "servicea:50051,serviceb:50051,servicec:50051,serviced:50
 **Updated:**
 - Hardware setup: Now requires 6 laptops (5 services + 1 client)
 - IP addresses: Added Laptop 4 (Service D) and Laptop 5 (Service E)
-- Expected result: Final result is 27 (was 60)
+- Expected result: Final result is 60 (was 27)
 
 ---
 
@@ -219,7 +219,7 @@ Both now spin up 5 service containers + 1 client container.
 ### CSV Output
 ```csv
 input,computed,transformed,aggregated,refined,final_result,service_a,service_b,service_c,service_d,service_e,send_ts,recv_ts,rtt_ms,error
-5,10,20,60,55,27,192.168.1.10:50051,192.168.1.11:50051,192.168.1.12:50051,192.168.1.13:50051,192.168.1.14:50051,1699999999000,1699999999050,50,
+5,105,120,62,63,60,192.168.1.10:50051,192.168.1.11:50051,192.168.1.12:50051,192.168.1.13:50051,192.168.1.14:50051,1699999999000,1699999999070,70,
 ```
 
 ### Summary Output

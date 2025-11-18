@@ -188,16 +188,16 @@ input, computed, transformed, aggregated, refined, final_result, service_a, serv
 
 **Example row (input=5):**
 ```
-5,10,20,60,55,27,192.168.1.10,192.168.1.11,192.168.1.12,192.168.1.13,192.168.1.14,1763126239680,1763126239686,6,
+5,105,120,62,63,60,192.168.1.10,192.168.1.11,192.168.1.12,192.168.1.13,192.168.1.14,1763126239680,1763126239750,70,
 ```
 
-**Calculation trace:**
+**Calculation trace (business logic pipeline):**
 - Input: 5
-- After Service A (×2): 10
-- After Service B (+10): 20
-- After Service C (×3): 60
-- After Service D (-5): 55
-- After Service E (÷2): 27
+- After Service A (Inventory: +100): 105
+- After Service B (Sales tax: ×1.15): 120
+- After Service C (Shipping: + base/10): 62
+- After Service D (Processing fee: ×1.025): 63
+- After Service E (Currency rounding to $5): 60
 
 ---
 
