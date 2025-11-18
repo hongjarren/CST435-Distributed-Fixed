@@ -17,12 +17,12 @@ class ComputeServicer(compute_pb2_grpc.ComputeServicer):
     """Service that implements the pipeline: Compute -> Transform -> Aggregate"""
     
     def Compute(self, request, context):
-        """Service A: multiply input by 2"""
+        """Service A: Inventory Check - add incoming stock to base inventory"""
         work_ms = request.work_ms if request.work_ms else 0
         time.sleep(work_ms / 1000.0)
         
-        # Compute: value * 2
-        result = request.value * 2
+        # Inventory: base_inventory (100) + incoming stock
+        result = request.value + 100
         timestamp_ms = int(time.time() * 1000)
         
         return compute_pb2.ComputeResponse(
@@ -32,12 +32,12 @@ class ComputeServicer(compute_pb2_grpc.ComputeServicer):
         )
     
     def Transform(self, request, context):
-        """Service B: add 10 to the computed value"""
+        """Service B: Apply Tax - calculate total with 15% sales tax"""
         work_ms = request.work_ms if request.work_ms else 0
         time.sleep(work_ms / 1000.0)
         
-        # Transform: computed_value + 10
-        result = request.computed_value + 10
+        # Tax: apply 15% sales tax
+        result = int(request.computed_value * 1.15)
         timestamp_ms = int(time.time() * 1000)
         
         return compute_pb2.TransformResponse(
@@ -47,12 +47,12 @@ class ComputeServicer(compute_pb2_grpc.ComputeServicer):
         )
     
     def Aggregate(self, request, context):
-        """Service C: multiply by 3 and return aggregated result"""
+        """Service C: Calculate Shipping - base cost plus weight-based rate"""
         work_ms = request.work_ms if request.work_ms else 0
         time.sleep(work_ms / 1000.0)
         
-        # Aggregate: transformed_value * 3
-        result = request.transformed_value * 3
+        # Shipping: $50 base + $1 per 10 units
+        result = 50 + (request.transformed_value // 10)
         timestamp_ms = int(time.time() * 1000)
         
         return compute_pb2.AggregateResponse(
@@ -62,12 +62,12 @@ class ComputeServicer(compute_pb2_grpc.ComputeServicer):
         )
     
     def Refine(self, request, context):
-        """Service D: subtract 5 from aggregated value"""
+        """Service D: Processing Fee - add 2.5% transaction fee"""
         work_ms = request.work_ms if request.work_ms else 0
         time.sleep(work_ms / 1000.0)
         
-        # Refine: aggregated_value - 5
-        result = request.aggregated_value - 5
+        # Processing fee: add 2.5% transaction fee
+        result = int(request.aggregated_value * 1.025)
         timestamp_ms = int(time.time() * 1000)
         
         return compute_pb2.RefineResponse(
@@ -77,12 +77,12 @@ class ComputeServicer(compute_pb2_grpc.ComputeServicer):
         )
     
     def Finalize(self, request, context):
-        """Service E: divide refined value by 2 and return final result"""
+        """Service E: Round to Currency - round final amount to nearest $5"""
         work_ms = request.work_ms if request.work_ms else 0
         time.sleep(work_ms / 1000.0)
         
-        # Finalize: refined_value / 2
-        result = request.refined_value // 2  # integer division
+        # Round to nearest $5 for final invoice
+        result = (request.refined_value // 5) * 5
         timestamp_ms = int(time.time() * 1000)
         
         return compute_pb2.FinalizeResponse(
