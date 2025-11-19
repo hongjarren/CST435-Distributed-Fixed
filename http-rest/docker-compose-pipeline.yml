@@ -1,0 +1,76 @@
+services:
+  service-a:
+    build:
+      context: ./service_a
+      dockerfile: Dockerfile
+    environment:
+      - SERVICE_NAME=A
+      - PORT=5000
+      - WORK_MS=10
+      - BASE_STOCK=100
+    ports:
+      - "5000:5000"
+    networks:
+      - pipeline-network
+
+  service-b:
+    build:
+      context: ./service_b
+      dockerfile: Dockerfile
+    environment:
+      - SERVICE_NAME=B
+      - PORT=5000
+      - WORK_MS=10
+      - TAX_RATE=0.15
+    ports:
+      - "5001:5000"
+    networks:
+      - pipeline-network
+
+  service-c:
+    build:
+      context: ./service_c
+      dockerfile: Dockerfile
+    environment:
+      - SERVICE_NAME=C
+      - PORT=5000
+      - WORK_MS=10
+      - BASE_SHIPPING=50
+      - UNIT_DIVISOR=10
+    ports:
+      - "5002:5000"
+    networks:
+      - pipeline-network
+
+  service-d:
+    build:
+      context: ./service_d
+      dockerfile: Dockerfile
+    environment:
+      - SERVICE_NAME=D
+      - PORT=5000
+      - WORK_MS=10
+      - FEE_RATE=0.025
+    ports:
+      - "5003:5000"
+    networks:
+      - pipeline-network
+
+  service-e:
+    build:
+      context: ./service_e
+      dockerfile: Dockerfile
+    environment:
+      - SERVICE_NAME=E
+      - PORT=5000
+      - WORK_MS=10
+      - ROUND_BASE=5
+    ports:
+      - "5004:5000"
+    networks:
+      - pipeline-network
+
+networks:
+  pipeline-network:
+    driver: bridge
+
