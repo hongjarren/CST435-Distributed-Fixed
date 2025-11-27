@@ -23,6 +23,17 @@ public class ComputeServer {
         }
 
         try {
+            String hostIp = System.getenv("HOST_IP");
+            if (hostIp == null || hostIp.isBlank()) {
+                hostIp = System.getenv("PUBLIC_IP");
+            }
+            if (hostIp != null && !hostIp.isBlank()) {
+                System.setProperty("java.rmi.server.hostname", hostIp.trim());
+                System.out.println("Exporting service using hostname " + hostIp);
+            } else {
+                System.out.println("WARNING: HOST_IP not set; assuming clients run inside same Docker network");
+            }
+
             // Create the service implementation
             ComputeServiceImpl service = new ComputeServiceImpl(serviceName);
 

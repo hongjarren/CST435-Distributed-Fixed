@@ -2,12 +2,33 @@ package com.cst435;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.Socket;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.RMISocketFactory;
 import java.util.*;
 import java.util.concurrent.*;
+
+/**
+ * Custom socket factory with aggressive timeouts
+ */
+class FastRMISocketFactory extends RMISocketFactory {
+    @Override
+    public Socket createSocket(String host, int port) throws IOException {
+        Socket socket = new Socket();
+        socket.setSoTimeout(2000);  // 2 second read timeout
+        socket.setTcpNoDelay(true); // Disable Nagle's algorithm
+        socket.connect(new java.net.InetSocketAddress(host, port), 2000); // 2 second connect timeout
+        return socket;
+    }
+
+    @Override
+    public java.net.ServerSocket createServerSocket(int port) throws IOException {
+        return new java.net.ServerSocket(port);
+    }
+}
 
 /**
  * RMI Load Test Client.
@@ -67,8 +88,14 @@ public class LoadTestClient {
         int numRequests;
         int inputValue;
         int workMs;
+        
+        // Pre-cached service stubs passed from main thread
+        ComputeService serviceA, serviceB, serviceC, serviceD, serviceE;
 
-        PipelineWorker(String hostA, String hostB, String hostC, String hostD, String hostE, int numRequests, int inputValue, int workMs) {
+        PipelineWorker(String hostA, String hostB, String hostC, String hostD, String hostE, 
+                      int numRequests, int inputValue, int workMs,
+                      ComputeService serviceA, ComputeService serviceB, ComputeService serviceC,
+                      ComputeService serviceD, ComputeService serviceE) {
             this.hostA = hostA;
             this.hostB = hostB;
             this.hostC = hostC;
@@ -77,11 +104,19 @@ public class LoadTestClient {
             this.numRequests = numRequests;
             this.inputValue = inputValue;
             this.workMs = workMs;
+            this.serviceA = serviceA;
+            this.serviceB = serviceB;
+            this.serviceC = serviceC;
+            this.serviceD = serviceD;
+            this.serviceE = serviceE;
         }
 
         @Override
         public List<TestResult> call() {
             List<TestResult> results = new ArrayList<>();
+            
+            // Service stubs are already cached from main thread
+            // Execute requests directly
             for (int i = 0; i < numRequests; i++) {
                 TestResult result = runPipeline();
                 results.add(result);
@@ -92,23 +127,7 @@ public class LoadTestClient {
         private TestResult runPipeline() {
             TestResult result = new TestResult(inputValue, hostA, hostB, hostC, hostD, hostE);
             try {
-                // Look up services in RMI registry
-                Registry regA = LocateRegistry.getRegistry(hostA, 1099);
-                ComputeService serviceA = (ComputeService) regA.lookup("ComputeService_A");
-
-                Registry regB = LocateRegistry.getRegistry(hostB, 1099);
-                ComputeService serviceB = (ComputeService) regB.lookup("ComputeService_B");
-
-                Registry regC = LocateRegistry.getRegistry(hostC, 1099);
-                ComputeService serviceC = (ComputeService) regC.lookup("ComputeService_C");
-                
-                Registry regD = LocateRegistry.getRegistry(hostD, 1099);
-                ComputeService serviceD = (ComputeService) regD.lookup("ComputeService_D");
-                
-                Registry regE = LocateRegistry.getRegistry(hostE, 1099);
-                ComputeService serviceE = (ComputeService) regE.lookup("ComputeService_E");
-
-                // Execute pipeline
+                // Execute pipeline using cached service stubs
                 result.computed = serviceA.compute(inputValue, workMs);
                 result.transformed = serviceB.transform(result.computed, workMs);
                 result.aggregated = serviceC.aggregate(result.transformed, workMs);
@@ -118,7 +137,7 @@ public class LoadTestClient {
                 result.recvTs = System.currentTimeMillis();
                 result.rttMs = result.recvTs - result.sendTs;
 
-            } catch (RemoteException | NotBoundException e) {
+            } catch (RemoteException e) {
                 result.recvTs = System.currentTimeMillis();
                 result.rttMs = result.recvTs - result.sendTs;
                 result.error = e.getMessage();
@@ -128,6 +147,16 @@ public class LoadTestClient {
     }
 
     public static void main(String[] args) {
+        // Disable reverse DNS lookups to prevent RMI blocking
+        System.setProperty("sun.net.spi.nameservice.provider.1", "dns,sun");
+        System.setProperty("sun.net.inetaddr.ttl", "0");
+        System.setProperty("java.security.krb5.disableReferrals", "true");
+        
+        // TCP optimization to eliminate handshake delays and reduce timeouts
+        System.setProperty("sun.rmi.transport.tcp.responseTimeout", "2000");
+        System.setProperty("sun.rmi.transport.connectionTimeout", "2000");
+        System.setProperty("java.rmi.server.disableHttp", "true");
+        
         String hostA = "localhost";
         String hostB = "localhost";
         String hostC = "localhost";
@@ -173,16 +202,61 @@ public class LoadTestClient {
         System.out.println("Requests: " + numRequests + ", Concurrency: " + concurrency);
         System.out.println("Input: " + inputValue + ", Work: " + workMs + "ms");
 
+        // Pre-cache service stubs in main thread (once for all workers)
+        System.out.println("\nLooking up services...");
+        ComputeService serviceA, serviceB, serviceC, serviceD, serviceE;
+        try {
+            long lookupStart = System.currentTimeMillis();
+            
+            long t1 = System.currentTimeMillis();
+            Registry regA = LocateRegistry.getRegistry(hostA, 1099);
+            serviceA = (ComputeService) regA.lookup("ComputeService_A");
+            System.out.println("  ✓ Service A found (" + (System.currentTimeMillis() - t1) + "ms)");
+
+            long t2 = System.currentTimeMillis();
+            Registry regB = LocateRegistry.getRegistry(hostB, 1099);
+            serviceB = (ComputeService) regB.lookup("ComputeService_B");
+            System.out.println("  ✓ Service B found (" + (System.currentTimeMillis() - t2) + "ms)");
+
+            long t3 = System.currentTimeMillis();
+            Registry regC = LocateRegistry.getRegistry(hostC, 1099);
+            serviceC = (ComputeService) regC.lookup("ComputeService_C");
+            System.out.println("  ✓ Service C found (" + (System.currentTimeMillis() - t3) + "ms)");
+            
+            long t4 = System.currentTimeMillis();
+            Registry regD = LocateRegistry.getRegistry(hostD, 1099);
+            serviceD = (ComputeService) regD.lookup("ComputeService_D");
+            System.out.println("  ✓ Service D found (" + (System.currentTimeMillis() - t4) + "ms)");
+            
+            long t5 = System.currentTimeMillis();
+            Registry regE = LocateRegistry.getRegistry(hostE, 1099);
+            serviceE = (ComputeService) regE.lookup("ComputeService_E");
+            System.out.println("  ✓ Service E found (" + (System.currentTimeMillis() - t5) + "ms)");
+            
+            long lookupTime = System.currentTimeMillis() - lookupStart;
+            System.out.println("All services found in " + lookupTime + "ms\n");
+            
+        } catch (RemoteException | NotBoundException e) {
+            System.err.println("FATAL: Service lookup failed: " + e.getMessage());
+            e.printStackTrace();
+            return;
+        }
+
         List<TestResult> allResults = new ArrayList<>();
         ExecutorService executor = Executors.newFixedThreadPool(concurrency);
         List<Future<List<TestResult>>> futures = new ArrayList<>();
 
         long experimentStart = System.currentTimeMillis();
+        System.out.println("Starting experiment...");
 
-        // Submit tasks
+        // Submit tasks with pre-cached stubs
         int perThread = Math.max(1, numRequests / concurrency);
         for (int i = 0; i < concurrency; i++) {
-            futures.add(executor.submit(new PipelineWorker(hostA, hostB, hostC, hostD, hostE, perThread, inputValue, workMs)));
+            futures.add(executor.submit(new PipelineWorker(
+                hostA, hostB, hostC, hostD, hostE, 
+                perThread, inputValue, workMs,
+                serviceA, serviceB, serviceC, serviceD, serviceE
+            )));
         }
 
         // Collect results

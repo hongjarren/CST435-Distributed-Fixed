@@ -11,6 +11,8 @@ import argparse
 import concurrent.futures
 from typing import List, Dict
 import os
+import threading
+from requests.adapters import HTTPAdapter
 
 STAGE_KEYS = [
     ("computed", "service_a"),
@@ -20,9 +22,25 @@ STAGE_KEYS = [
     ("final_result", "service_e"),
 ]
 
+thread_local = threading.local()
+
+
+def get_session() -> requests.Session:
+    """Return a thread-local session to reuse TCP connections."""
+    session = getattr(thread_local, "session", None)
+    if session is None:
+        session = requests.Session()
+        adapter = HTTPAdapter(pool_connections=32, pool_maxsize=32)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+        thread_local.session = session
+    return session
+
 def call_service(url: str, value: int) -> int:
     """Invoke a service endpoint and return the computed value."""
-    response = requests.post(
+
+    session = get_session()
+    response = session.post(
         f"{url}/process",
         json={"value": value},
         timeout=30

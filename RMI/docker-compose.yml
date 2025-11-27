@@ -72,7 +72,7 @@ services:
       - "--targets"
       - "servicea,serviceb,servicec,serviced,servicee"
       - "--requests"
-      - "300"
+      - "5000"
       - "--concurrency"
       - "10"
       - "--work_ms"

@@ -12,7 +12,7 @@ public class ComputeServiceImpl extends UnicastRemoteObject implements ComputeSe
     private String serviceName;
 
     public ComputeServiceImpl(String serviceName) throws RemoteException {
-        super();
+        super(1099); // Export on port 1099 (same as registry)
         this.serviceName = serviceName;
     }
 
