@@ -1,0 +1,25 @@
+# Virtual Environments
+venv/
+.venv/
+venv*/
+ENV/
+
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# gRPC generated files (optional: keep if needed for deployment)
+# Grpc/client/compute_pb2.py
+# Grpc/client/compute_pb2_grpc.py
+
+# Benchmark outputs & raw data
+*.csv.tmp
+*.log
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
